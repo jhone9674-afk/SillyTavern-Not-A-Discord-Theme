@@ -19,28 +19,33 @@ export function initializeMarkdownFix() {
     // Watch for new messages or message updates
     const observer = new MutationObserver((mutations) => {
         for (const mutation of mutations) {
-            if (mutation.type === 'childList') {
-                mutation.addedNodes.forEach(node => {
-                    if (node.nodeType === Node.ELEMENT_NODE) {
-                        // If a whole message was added
-                        if (node.classList && node.classList.contains('mes')) {
-                            const text = node.querySelector('.mes_text');
-                            if (text) applySpacingFix(text);
+            if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                const target = mutation.target.nodeType === Node.ELEMENT_NODE
+                    ? mutation.target
+                    : mutation.target.parentElement;
+
+                if (target) {
+                    const mesText = target.closest('.mes_text');
+                    if (mesText) applySpacingFix(mesText);
+                }
+
+                if (mutation.type === 'childList') {
+                    mutation.addedNodes.forEach(node => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            if (node.classList && node.classList.contains('mes')) {
+                                const text = node.querySelector('.mes_text');
+                                if (text) applySpacingFix(text);
+                            }
+                            const mesTexts = node.querySelectorAll ? node.querySelectorAll('.mes_text') : [];
+                            mesTexts.forEach(applySpacingFix);
                         }
-                        // Or if content inside an existing message changed
-                        if (node.classList && node.classList.contains('mes_text')) {
-                            applySpacingFix(node);
-                        }
-                        // Handle cases where sub-elements might be inserted
-                        const mesTexts = node.querySelectorAll ? node.querySelectorAll('.mes_text') : [];
-                        mesTexts.forEach(applySpacingFix);
-                    }
-                });
+                    });
+                }
             }
         }
     });
 
-    observer.observe(chatContainer, { childList: true, subtree: true });
+    observer.observe(chatContainer, { childList: true, subtree: true, characterData: true });
 
     // Legacy fallback for rendering events
     eventSource.on(event_types.MESSAGE_RENDERED, (messageId) => {
@@ -52,12 +57,13 @@ export function initializeMarkdownFix() {
 }
 
 function applySpacingFix(container) {
-    if (!container || container.getAttribute('data-spacing-fixed') === 'true') return;
+    if (!container) return;
 
     const italics = container.querySelectorAll('em, i');
-    const punctuationRegex = /^[\.,!\?\:;"'\)\]\}\(]/;
-
-    let fixedCount = 0;
+    // Punctuation that should be ATTACHED to the italicized word (no space)
+    const attachedPunctuation = /^[\.,!\?\:;"'\)\]\}>—]/;
+    // Punctuation/symbols that should have a SPACE before them if they follow italics
+    // (Usually just opening brackets or quotes, but handled by the general logic)
 
     italics.forEach(el => {
         // Fix space BEFORE
@@ -65,18 +71,17 @@ function applySpacingFix(container) {
         if (prev) {
             if (prev.nodeType === Node.TEXT_NODE) {
                 const text = prev.textContent;
-                // If ends with a word character and NOT a space
-                if (/\w$/.test(text)) {
-                    prev.textContent = text + ' ';
-                    fixedCount++;
+                // If ends with a non-space character that isn't an opening bracket/quote
+                if (/[^\s\(\[\{"']$/.test(text)) {
+                    // Check if we haven't already added a space
+                    if (!text.endsWith(' ')) {
+                        prev.textContent = text + ' ';
+                    }
                 }
             } else if (prev.nodeType === Node.ELEMENT_NODE) {
-                // If it's another inline element, they might be glued
-                // We don't want to mess with everything, but if it ends in text...
                 const prevText = prev.innerText || prev.textContent;
-                if (/\w$/.test(prevText)) {
+                if (/[^\s\(\[\{"']$/.test(prevText)) {
                     el.style.marginLeft = '0.25em';
-                    fixedCount++;
                 }
             }
         }
@@ -86,24 +91,16 @@ function applySpacingFix(container) {
         if (next) {
             if (next.nodeType === Node.TEXT_NODE) {
                 const text = next.textContent;
-                // If starts with a word character (not punctuation/space)
-                if (/^\w/.test(text) && !punctuationRegex.test(text)) {
+                // If starts with a non-space character AND it's not "attached" punctuation
+                if (text.length > 0 && !/^\s/.test(text) && !attachedPunctuation.test(text)) {
                     next.textContent = ' ' + text;
-                    fixedCount++;
                 }
             } else if (next.nodeType === Node.ELEMENT_NODE) {
                 const nextText = next.innerText || next.textContent;
-                if (/^\w/.test(nextText) && !punctuationRegex.test(nextText)) {
+                if (nextText.length > 0 && !/^\s/.test(nextText) && !attachedPunctuation.test(nextText)) {
                     el.style.marginRight = '0.25em';
-                    fixedCount++;
                 }
             }
         }
     });
-
-    // Mark as potentially fixed to avoid infinite loops, 
-    // but only if we actually found italics to check.
-    if (italics.length > 0) {
-        container.setAttribute('data-spacing-fixed', 'true');
-    }
 }
