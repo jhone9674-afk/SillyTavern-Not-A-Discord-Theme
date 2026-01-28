@@ -1282,6 +1282,7 @@ body.bubblechat .mes[is_user="false"] {
   line-height: calc(var(--NSDMesFontSize) + .5rem);
 }
 
+
 .mes_reasoning_header {
   background-color: unset !important;
   margin: unset !important;
@@ -2473,4 +2474,3 @@ body.big_side-avatars .mesAvatarWrapper .avatar img {
 .scrollableInner {
   height: calc(100% - 50px) !important;
 }
-

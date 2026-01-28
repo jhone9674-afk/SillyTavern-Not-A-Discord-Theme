@@ -1,17 +1,18 @@
-import { eventSource, event_types, getSlideToggleOptions} from '../../../../../script.js';
+import { eventSource, event_types, getSlideToggleOptions } from '../../../../../script.js';
 import { createHiddenWidthDiv } from './domUtils.js';
 import { watchForChangesAndResize } from './expressionResize.js';
 import { setDrawerClasses } from './drawer.js';
 import { positionAnchor } from './positionAnchor.js';
 import { drawerClickOverride } from './drawerClickOverride.js';
 import { checkTheme, resetMovablePanels } from './checkTheme.js';
-import { drawerStyleChangeOverride} from './chatStyle.js';
+import { drawerStyleChangeOverride } from './chatStyle.js';
+import { initializeMarkdownFix } from './markdownFix.js';
 import ThemeSettingsManager from './themeSettingsManager.js';
 
 export class ThemeSetup {
     constructor() {
         this.isAppReady = false;
-       
+
         this.themeEntries = [
             {
                 "type": "slider",
@@ -35,32 +36,12 @@ export class ThemeSetup {
             },
             {
                 "type": "slider",
-                "varId": "NSDpanel-base-width",
-                "displayText": "Right Panels Width",
-                "default": "380",
-                "min": 200,
-                "max": 600,
-                "step": 1,
-                "controlType": "css"
-            },
-            {
-                "type": "slider",
                 "varId": "NSDMesFontSize",
                 "displayText": "Message Font Size",
                 "default": "15",
                 "min": 8,
                 "max": 36,
                 "step": 1,
-                "controlType": "css"
-            },
-            {
-                "type": "slider",
-                "varId": "NSDbig_side-avatars-opacity",
-                "displayText": "Text on avatar opacity",
-                "default": "0.3",
-                "min": 0,
-                "max": 0.99,
-                "step": 0.01,
                 "controlType": "css"
             },
             {
@@ -81,42 +62,30 @@ export class ThemeSetup {
                 "options": [
                     { "label": "4x4", "value": "4x4" },
                     { "label": "4x3.4", "value": "4x3.4" },
-                    { "label": "4x3", "value": "4x3" },
-                    { "label": "6x4", "value": "6x4" },
-                    { "label": "6x6", "value": "6x6" },
-                    { "label": "8x5", "value": "8x5" },
-                    { "label": "8x7", "value": "8x7" }
-
+                    { "label": "4x3", "value": "4x3" }
                 ],
-                "controlType": "js" 
+                "controlType": "js"
             },
             {
                 "type": "checkbox",
                 "varId": "chatBubbleBigAvatarHeight",
                 "displayText": "Chat Bubble as Big Avatar Height",
                 "default": false,
-                "controlType": "js" 
+                "controlType": "js"
             },
             {
                 "type": "checkbox",
                 "varId": "enable-animations",
                 "displayText": "Enable Some Animations",
                 "default": false,
-                "controlType": "js" 
+                "controlType": "js"
             },
             {
                 "type": "checkbox",
                 "varId": "enable-autoHideCharFilter",
                 "displayText": "Auto Hide Filter/Search Block",
                 "default": false,
-                "controlType": "js" 
-            },
-            {
-                "type": "color",
-                "varId": "NSDbig_side-avatars-Color",
-                "displayText": "Text on avatar Color",
-                "default": "rgba(214, 214, 214, 1)",
-                "controlType": "css"
+                "controlType": "js"
             },
             {
                 "type": "color",
@@ -176,14 +145,14 @@ export class ThemeSetup {
                 "controlType": "js" 
             }*/
         ];
-       
+
 
         this.themeManager = new ThemeSettingsManager(this.themeEntries);
-        
+
 
         this.registerCallbacks();
     }
-    
+
 
     registerCallbacks() {
 
@@ -207,28 +176,28 @@ export class ThemeSetup {
         this.themeManager.registerCallback('expression-visibility', (value, oldValue, varId) => {
             this.setExpressionVisibility(value);
         });
-        
+
         this.themeManager.registerCallback('animation-speed', (value, oldValue, varId) => {
             this.setAnimationSpeed(value);
         });
     }
-    
+
     toggleAnimations(enabled) {
         console.log(`[NADTheme] jQuery.fx.off Animations ${enabled ? 'enabled' : 'disabled'}`);
-        
-        if (enabled){
+
+        if (enabled) {
             jQuery.fx.off = false;
         } else {
             jQuery.fx.off = true;
         }
     }
-    
+
     setExpressionVisibility(visibility) {
-   
+
     }
-    
+
     setAnimationSpeed(speed) {
-      
+
     }
 
     toggleChatBubbleBigAvatarHeight(enabled) {
@@ -252,7 +221,7 @@ export class ThemeSetup {
     }
 
 
-    setBigChatAvatarFactor(factor){
+    setBigChatAvatarFactor(factor) {
 
         if (factor === '4x3') {
 
@@ -264,43 +233,20 @@ export class ThemeSetup {
             document.body.style.setProperty('--big-avatar-char-width-factor', `4`, 'important');
             document.body.style.setProperty('--big-avatar-char-height-factor', `4`, 'important');
 
-        } else if (factor === '4x3.4') {
-            document.body.style.setProperty('--big-avatar-char-width-factor', `4`, 'important');
-            document.body.style.setProperty('--big-avatar-char-height-factor', `3.4`, 'important');
-        
-        } else if (factor === '6x4') {
-
-            document.body.style.setProperty('--big-avatar-char-width-factor', `6`, 'important');
-            document.body.style.setProperty('--big-avatar-char-height-factor', `4`, 'important');
-
-        } else if (factor === '6x6') {
-
-            document.body.style.setProperty('--big-avatar-char-width-factor', `6`, 'important');
-            document.body.style.setProperty('--big-avatar-char-height-factor', `6`, 'important');
-
-        } else if (factor === '8x5') {
-
-            document.body.style.setProperty('--big-avatar-char-width-factor', `8`, 'important');
-            document.body.style.setProperty('--big-avatar-char-height-factor', `5`, 'important');
-
-        } else if (factor === '8x7') {
-
-            document.body.style.setProperty('--big-avatar-char-width-factor', `8`, 'important');
-            document.body.style.setProperty('--big-avatar-char-height-factor', `7`, 'important');
-
         } else {
 
+            document.body.style.setProperty('--big-avatar-char-width-factor', `4`, 'important');
+            document.body.style.setProperty('--big-avatar-char-height-factor', `3.4`, 'important');
         }
     }
 
     setAutoHideCharFilter(enabled) {
-      var fixedTop = document.getElementById('charListFixedTop');
+        var fixedTop = document.getElementById('charListFixedTop');
 
-        if (enabled) 
-        {
-            fixedTop.className='popout';
+        if (enabled) {
+            fixedTop.className = 'popout';
         } else {
-            fixedTop.className='';
+            fixedTop.className = '';
         }
     }
 
@@ -308,7 +254,7 @@ export class ThemeSetup {
         eventSource.on(event_types.APP_READY, () => {
             //jQuery.fx.off = true;
             this.isAppReady = true;
-           
+
             createHiddenWidthDiv();
             watchForChangesAndResize();
             setDrawerClasses();
@@ -317,6 +263,7 @@ export class ThemeSetup {
             drawerClickOverride();
 
             checkTheme();
+            initializeMarkdownFix();
 
             this.addThemeSettings();
 
@@ -336,15 +283,15 @@ export class ThemeSetup {
         this.themeEntries = newEntries;
         this.themeManager.updateEntries(newEntries);
     }
-   
+
     getCurrentSettings() {
         return this.themeManager.settings.entries;
     }
-   
+
     resetTheme() {
         this.themeManager.resetToDefaults();
     }
-    
+
     registerAdditionalCallback(varId, callback) {
         this.themeManager.registerCallback(varId, callback);
     }
